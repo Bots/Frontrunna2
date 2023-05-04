@@ -1,0 +1,16 @@
+{
+  "name": "frontrunna2",
+  "version": "1.0.0",
+  "description": "Front running MEV bot",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "John Paul Wile",
+  "license": "ISC",
+  "dependencies": {
+    "@flashbots/ethers-provider-bundle": "^0.6.1",
+    "dotenv": "^16.0.3",
+    "ethers": "^5.7.2"
+  }
+}

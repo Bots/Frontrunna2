@@ -65,6 +65,10 @@ const initialChecks = async (tx) => {
     return false;
   }
 
+  if (!transaction.maxPriorityFeePerGas) {
+    return false;
+  }
+
   if (Number(transaction.value) == 0) return false;
 
   if (transaction.to.toLowerCase() != process.env.UNIVERSAL_ROUTER_ADDRESS.toLowerCase()) return false;
@@ -91,6 +95,22 @@ const initialChecks = async (tx) => {
     minAmountOut: decodedSwap.minAmountOut,
     tokenToCapture: decodedSwap.path[1],
   };
+};
+
+// Calculate amount out
+const getAmountOut = (amountIn, reserveIn, reserveOut) => {
+  if (amountIn <= 0) {
+    console.log('Insufficient Input Amount');
+    return false;
+  }
+  if (reserveIn <= 0 || reserveOut <= 0) {
+    console.log('Insufficient Liquidity');
+    return false;
+  }
+  const amountInWithFee = amountIn.mul(997);
+  const numerator = amountInWithFee.mul(reserveOut);
+  const denominator = reserveIn.mul(1000).add(amountInWithFee);
+  return numerator.div(denominator);
 };
 
 // Process transaction
@@ -126,14 +146,14 @@ const processTransaction = async (tx) => {
   const priorityFee = transaction.maxPriorityFeePerGas.add(BRIBE_TO_MINERS);
 
   // Buy using amount in and calculate amount out
-  let firstAmountOut = await uniswap.getAmountOut(BUY_AMOUNT, a, b);
+  let firstAmountOut = getAmountOut(BUY_AMOUNT, a, b);
   const updatedReserveA = a.add(BUY_AMOUNT);
   const updatedReserveB = b.add(firstAmountOut);
-  let secondBuyAmount = await uniswap.getAmountOut(amountIn, updatedReserveA, updatedReserveB);
+  let secondBuyAmount = getAmountOut(amountIn, updatedReserveA, updatedReserveB);
   if (secondBuyAmount.lt(minAmountOut)) return console.log('Victim would get less than the minimum');
   const updatedReserveA2 = updatedReserveA.add(amountIn);
   const updatedReserveB2 = updatedReserveB.add(secondBuyAmount);
-  let thirdAmountOut = await uniswap.getAmountOut(firstAmountOut, updatedReserveB2, updatedReserveA2);
+  let thirdAmountOut = getAmountOut(firstAmountOut, updatedReserveB2, updatedReserveA2);
 
   // Prepare first transaction
   const deadline = Math.floor(Date.now() / 1000) + 60 * 60; //1 hour from now
@@ -256,3 +276,15 @@ const start = async () => {
 };
 
 start();
+
+// Next steps:
+// - Calculate gas costs
+// - Estimate the next base fee
+// - Calculate amounts out locally
+// - Use multiple block builders besides flashbots
+// - Reduce gas costs by using an assembly yul contract
+// - Use multiple cores from your computer to improve performance
+// - Calculate the transaction array for type 0 and type 2 transactions
+// - Implement multiple dexes like uniswap, shibaswap, sushiswap and others
+// - Calculate the pair address locally with a function without a blockchain request
+// - Calculate the exact amount you'll get in profit after the first, middle and last trade without a request and without loops
